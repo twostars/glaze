@@ -231,7 +231,7 @@ namespace glz::detail
 
       constexpr uint64_t naive_perfect_hash() noexcept
       {
-         std::array<size_t, N> bucket_index{};
+         std::array<uint64_t, N> bucket_index{};
 
          naive_prng gen{};
          for (size_t i = 0; i < 1024; ++i) {

@@ -41,7 +41,7 @@ namespace glz
    template <size_t N>
    constexpr auto shrink_index_array(auto&& arr)
    {
-      std::array<size_t, N> res{};
+      std::array<uint64_t, N> res{};
       for (size_t i = 0; i < N; ++i) {
          res[i] = arr[i];
       }
@@ -99,9 +99,9 @@ namespace glz
    }
 
    template <size_t n_groups>
-   constexpr auto group_sizes(const std::array<size_t, n_groups>& indices, size_t n_total)
+   constexpr auto group_sizes(const std::array<uint64_t, n_groups>& indices, size_t n_total)
    {
-      std::array<size_t, n_groups> diffs;
+      std::array<uint64_t, n_groups> diffs;
 
       for (size_t i = 0; i < n_groups - 1; ++i) {
          diffs[i] = indices[i + 1] - indices[i];
