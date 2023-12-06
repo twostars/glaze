@@ -84,7 +84,7 @@ namespace glz::detail
       if (std::is_constant_evaluated()) {
          uint64_t res{};
          for (size_t i = 0; i < N; ++i) {
-            res |= (uint64_t(bytes[i]) << (i << 3));
+            res |= ((uint64_t)(bytes[i]) << (i << 3));
          }
          return res;
       }
@@ -92,7 +92,7 @@ namespace glz::detail
          uint64_t res{};
          std::memcpy(&res, bytes, N);
          constexpr auto num_bytes = sizeof(uint64_t);
-         constexpr auto shift = (uint64_t(num_bytes - N) << 3);
+         constexpr auto shift = ((uint64_t)(num_bytes - N) << 3);
          if constexpr (shift == 0) {
             return res;
          }
