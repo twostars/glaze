@@ -2525,6 +2525,10 @@ namespace glz
                      if (bool(ctx.error)) [[unlikely]]
                         return;
 
+                     // The quote isn't consumed here. Since we don't trigger handle_unknown(), we should just skip it.
+                     if constexpr (!Opts.error_on_missing_keys)
+                        ++it;
+
                      // Because parse_object_key does not necessarily return a valid JSON key, the logic for handling
                      // whitespace and the colon must run after checking if the key exists
                      if (const auto& member_it = frozen_map.find(key); member_it != frozen_map.end()) [[likely]] {
