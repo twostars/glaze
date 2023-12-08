@@ -827,7 +827,12 @@ namespace glz
             size_t res{};
             for_each<N>([&](auto I) {
                using V = std::decay_t<std::variant_alternative_t<I, T>>;
-               res += std::tuple_size_v<meta_t<V>>;
+               if constexpr (reflectable<V>) {
+                  res += count_members<V>();
+               }
+               else {
+                  res += std::tuple_size_v<meta_t<V>>;
+               }
             });
             return res;
          }();
@@ -836,8 +841,25 @@ namespace glz
          size_t index = 0;
          for_each<N>([&](auto I) {
             using V = std::decay_t<std::variant_alternative_t<I, T>>;
-            for_each<std::tuple_size_v<meta_t<V>>>(
-               [&](auto J) { data[index++] = glz::get<0>(glz::get<J>(meta_v<V>)); });
+            if constexpr (reflectable<V>) {
+               for_each<std::tuple_size_v<decltype(member_names<V>)>>(
+                  [&](auto J) { data[index++] = glz::get<J>(member_names<V>); });
+            }
+            else {
+               for_each<std::tuple_size_v<meta_t<V>>>([&](auto J) {
+                  constexpr auto item = get<J>(meta_v<V>);
+                  using T0 = std::decay_t<decltype(get<0>(item))>;
+                  auto key_getter = [&] {
+                     if constexpr (std::is_member_object_pointer_v<T0>) {
+                        return get_name<get<0>(get<J>(meta_v<V>))>();
+                     }
+                     else {
+                        return get<0>(get<J>(meta_v<V>));
+                     }
+                  };
+                  data[index++] = key_getter();
+               });
+            }
          });
 
          std::sort(data.data(), data.data() + max_keys);
@@ -865,8 +887,25 @@ namespace glz
          constexpr auto N = std::variant_size_v<T>;
          for_each<N>([&](auto I) {
             using V = std::decay_t<std::variant_alternative_t<I, T>>;
-            for_each<std::tuple_size_v<meta_t<V>>>(
-               [&](auto J) { deduction_map.find(glz::get<0>(glz::get<J>(meta_v<V>)))->second[I] = true; });
+            if constexpr (reflectable<V>) {
+               for_each<std::tuple_size_v<decltype(member_names<V>)>>(
+                  [&](auto J) { deduction_map.find(get<J>(member_names<V>))->second[I] = true; });
+            }
+            else {
+               for_each<std::tuple_size_v<meta_t<V>>>([&](auto J) {
+                  constexpr auto item = get<J>(meta_v<V>);
+                  using T0 = std::decay_t<decltype(get<0>(item))>;
+                  auto key_getter = [&] {
+                     if constexpr (std::is_member_object_pointer_v<T0>) {
+                        return get_name<get<0>(get<J>(meta_v<V>))>();
+                     }
+                     else {
+                        return get<0>(get<J>(meta_v<V>));
+                     }
+                  };
+                  deduction_map.find(key_getter())->second[I] = true;
+               });
+            }
          });
 
          return deduction_map;
@@ -886,7 +925,8 @@ namespace glz
          return make_variant_id_map_impl<T>(indices, ids_v<T>);
       }
 
-      inline decltype(auto) get_member(auto&& value, auto&& member_ptr)
+      template <class Value, class MemPtr>
+      inline decltype(auto) get_member(Value&& value, MemPtr&& member_ptr)
       {
          using V = std::decay_t<decltype(member_ptr)>;
          if constexpr (std::is_member_object_pointer_v<V>) {
@@ -895,8 +935,8 @@ namespace glz
          else if constexpr (std::is_member_function_pointer_v<V>) {
             return member_ptr;
          }
-         else if constexpr (std::invocable<decltype(member_ptr), decltype(value)>) {
-            return std::invoke(member_ptr, value);
+         else if constexpr (std::invocable<MemPtr, Value>) {
+            return std::invoke(std::forward<MemPtr>(member_ptr), std::forward<Value>(value));
          }
          else if constexpr (std::is_pointer_v<V>) {
             return *member_ptr;

@@ -5,6 +5,7 @@
 
 #include <array>
 
+#include "glaze/reflection/get_name.hpp"
 #include "glaze/tuplet/tuple.hpp"
 #include "glaze/util/for_each.hpp"
 #include "glaze/util/type_traits.hpp"
@@ -189,7 +190,7 @@ namespace glz
          static_assert(false_v<T>, "name_v used on unnamed type");
       }
       else {
-         return "glz::unknown";
+         return type_name<std::decay_t<T>>;
       }
    }();
 

@@ -50,12 +50,12 @@ namespace glz
       template <glaze_value_t T>
       struct to_json<T>
       {
-         template <auto Opts, is_context Ctx, class B, class IX>
-         GLZ_ALWAYS_INLINE static void op(auto&& value, Ctx&& ctx, B&& b, IX&& ix)
+         template <auto Opts, class Value, is_context Ctx, class B, class IX>
+         GLZ_ALWAYS_INLINE static void op(Value&& value, Ctx&& ctx, B&& b, IX&& ix)
          {
-            using V = std::decay_t<decltype(get_member(std::declval<T>(), meta_wrapper_v<T>))>;
-            to_json<V>::template op<Opts>(get_member(value, meta_wrapper_v<T>), std::forward<Ctx>(ctx),
-                                          std::forward<B>(b), std::forward<IX>(ix));
+            using V = std::remove_cvref_t<decltype(get_member(std::declval<Value>(), meta_wrapper_v<T>))>;
+            to_json<V>::template op<Opts>(get_member(std::forward<Value>(value), meta_wrapper_v<T>),
+                                          std::forward<Ctx>(ctx), std::forward<B>(b), std::forward<IX>(ix));
          }
       };
 
@@ -1150,7 +1150,7 @@ namespace glz
          template <auto Options>
          GLZ_ALWAYS_INLINE static void op(auto&& value, is_context auto&& ctx, auto&& b, auto&& ix) noexcept
          {
-            static constexpr auto members = member_names<T>();
+            static constexpr auto members = member_names<T>;
             auto t = to_tuple(value);
             using V = decltype(t);
             static constexpr auto N = std::tuple_size_v<V>;
@@ -1192,7 +1192,7 @@ namespace glz
                      write_entry_separator<Opts>(ctx, b, ix);
                   }
 
-                  const auto key = get<I>(members).name;
+                  const auto key = get<I>(members);
 
                   write<json>::op<Opts>(key, ctx, b, ix);
                   dump<':'>(b, ix);
