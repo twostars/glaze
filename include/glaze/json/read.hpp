@@ -328,6 +328,8 @@ namespace glz
             if constexpr (Options.quoted_num) {
                skip_ws<Options>(ctx, it, end);
                match<'"'>(ctx, it, end);
+               if (bool(ctx.error)) [[unlikely]]
+                  return;
             }
 
             if constexpr (!Options.ws_handled) {
@@ -1307,7 +1309,7 @@ namespace glz
       struct from_json<includer<T>>
       {
          template <auto Opts>
-         GLZ_ALWAYS_INLINE static void op(auto&& value, is_context auto&& ctx, auto&& it, auto&& end) noexcept
+         static void op(auto&& value, is_context auto&& ctx, auto&& it, auto&& end) noexcept
          {
             std::string& path = string_buffer();
             read<json>::op<Opts>(path, ctx, it, end);
@@ -1317,17 +1319,17 @@ namespace glz
             const auto file_path = relativize_if_not_absolute(std::filesystem::path(ctx.current_file).parent_path(),
                                                               std::filesystem::path{path});
 
-            std::string& buffer = string_buffer();
-            std::string string_file_path = file_path.string();
+            std::string& buffer = path;
+            const auto string_file_path = file_path.string();
             const auto ec = file_to_buffer(buffer, string_file_path);
 
-            if (bool(ec)) {
+            if (bool(ec)) [[unlikely]] {
                ctx.error = ec;
                return;
             }
 
             const auto current_file = ctx.current_file;
-            ctx.current_file = file_path.string();
+            ctx.current_file = string_file_path;
 
             std::ignore = glz::read<Opts>(value.value, buffer, ctx);
             if (bool(ctx.error)) [[unlikely]]
@@ -1373,7 +1375,7 @@ namespace glz
       template <reflectable T>
       inline constexpr bool keys_may_contain_escape()
       {
-         return true;
+         return false; // escapes are not valid in C++ names
       }
 
       template <is_variant T>
